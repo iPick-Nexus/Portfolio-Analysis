@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Connect brokerage</title>
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<button id="link">Connect brokerage</button>
+<pre id="out"></pre>
+<script>
+const csrf = "{{ csrf_token }}";
+const out = document.getElementById("out");
+
+document.getElementById("link").onclick = async () => {
+  const r = await fetch("/plaid/link-token/", { method: "POST", headers: { "X-CSRFToken": csrf } });
+  const { link_token, error } = await r.json();
+  if (error) { out.textContent = JSON.stringify(error, null, 2); return; }
+
+  Plaid.create({
+    token: link_token,
+    onSuccess: async (public_token, metadata) => {
+      await fetch("/plaid/exchange/", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrf, "Content-Type": "application/json" },
+        body: JSON.stringify({ public_token, institution_name: metadata.institution?.name ?? "" }),
+      });
+      const h = await fetch("/plaid/holdings/");
+      out.textContent = JSON.stringify(await h.json(), null, 2);
+    },
+  }).open();
+};
+</script>

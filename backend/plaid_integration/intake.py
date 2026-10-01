@@ -1,7 +1,8 @@
 from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
-from .client import client  # adjust import to wherever your client lives
+from .client import client
 
-ALLOWED = {"equity", "mutual fund", "etf"}
+# Security types the metrics step can handle
+ALLOWED = {"equity", "etf", "mutual fund"}
 
 def fetch_holdings(access_token):
     resp = client.investments_holdings_get(
@@ -11,8 +12,8 @@ def fetch_holdings(access_token):
     holdings = []
     for h in resp["holdings"]:
         s = sec[h["security_id"]]
-        if s.get("type") == "cash" or not s.get("ticker_symbol"):
-            continue  # skip cash / untickered positions
+        if s.get("type") not in ALLOWED or not s.get("ticker_symbol"):
+            continue  # skip cash, crypto, options, untickered positions
         holdings.append({
             "ticker": s["ticker_symbol"],
             "name": s.get("name"),
