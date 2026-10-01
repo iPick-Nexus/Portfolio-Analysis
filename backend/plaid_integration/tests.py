@@ -87,9 +87,10 @@ class LoginRequiredTests(ViewTestCase):
             ("post", "/plaid/exchange/"),
             ("get", "/plaid/holdings/"),
         ]:
-            r = getattr(self.client, method)(url)
-            self.assertEqual(r.status_code, 302, url)
-            self.assertIn("/admin/login/", r["Location"])
+            with self.subTest(url=url):
+                r = getattr(self.client, method)(url)
+                self.assertEqual(r.status_code, 302)
+                self.assertIn("/admin/login/", r["Location"])
 
 
 class ConnectPageTests(ViewTestCase):
@@ -115,6 +116,9 @@ class LinkTokenTests(ViewTestCase):
         request = client.link_token_create.call_args.args[0]
         self.assertEqual(request.user.client_user_id, str(self.user.id))
         self.assertEqual([p.value for p in request.products], ["investments"])
+        self.assertEqual(request.client_name, "iPick")
+        self.assertEqual([c.value for c in request.country_codes], ["US"])
+        self.assertEqual(request.language, "en")
 
     def test_get_not_allowed(self):
         self.assertEqual(self.client.get("/plaid/link-token/").status_code, 405)
@@ -136,11 +140,22 @@ class ExchangeTests(ViewTestCase):
         client.item_public_token_exchange.return_value = {"item_id": "item-1", "access_token": "access-1"}
         r = self.post(public_token="public-1", institution_name="First Platypus Bank")
         self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {"ok": True})
         item = PlaidItem.objects.get(item_id="item-1")
         self.assertEqual(item.user, self.user)
         self.assertEqual(item.access_token, "access-1")
         self.assertEqual(item.institution_name, "First Platypus Bank")
         self.assertEqual(client.item_public_token_exchange.call_args.args[0].public_token, "public-1")
+
+    @patch("plaid_integration.views.client")
+    def test_institution_name_defaults_to_empty(self, client):
+        client.item_public_token_exchange.return_value = {"item_id": "item-1", "access_token": "access-1"}
+        r = self.post(public_token="public-1")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(PlaidItem.objects.get(item_id="item-1").institution_name, "")
+
+    def test_get_not_allowed(self):
+        self.assertEqual(self.client.get("/plaid/exchange/").status_code, 405)
 
     @patch("plaid_integration.views.client")
     def test_relinking_same_item_updates_instead_of_duplicating(self, client):
@@ -166,6 +181,7 @@ class HoldingsTests(ViewTestCase):
     @patch("plaid_integration.intake.client")
     def test_no_linked_accounts(self, client):
         r = self.client.get("/plaid/holdings/")
+        self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json(), {"holdings": []})
         client.investments_holdings_get.assert_not_called()
 
