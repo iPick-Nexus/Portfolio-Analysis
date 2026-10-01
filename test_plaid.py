@@ -1,7 +1,3 @@
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
 from plaid_client import client
 from plaid.model.products import Products
 from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCreateRequest
