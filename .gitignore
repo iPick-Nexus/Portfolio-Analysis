@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# PM-only answer keys
+answerviews.py
+
 # Virtual environments
 venv/
 .venv/
