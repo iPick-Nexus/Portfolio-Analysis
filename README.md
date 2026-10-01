@@ -31,11 +31,11 @@ Do this once, before your first work session. It takes about 10 minutes.
 
 **3.11 recommended, 3.12 okay, 3.13+ won't install.**
 
-| Python | Works? | Why |
-|---|---|---|
-| 3.11 | ✅ Recommended | Matches production exactly |
-| 3.12 | ✅ Okay | Installs fine, but CI runs on 3.11, so a few newer-only syntax features will fail there (see below) |
-| 3.13, 3.14 | ❌ | Our pinned numpy (1.26.4) has no ready-made install for them, so `pip install` tries to compile it from source, which is slow and usually fails |
+| Python     | Works?         | Why                                                                                                                                                                   |
+| ---------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.11       | ✅ Recommended | Matches production exactly                                                                                                                                            |
+| 3.12       | ✅ Okay        | Installs fine, but CI runs on 3.11, so a few newer-only syntax features will fail there (see below)                                                                   |
+| 3.13, 3.14 | ❌             | Our pinned numpy (1.26.4) has no ready-made install for them, so`pip install` tries to compile it from source, which is slow. Can still work, but will take a while |
 
 Why 3.11: production runs 3.11, and code written on a newer Python can use syntax 3.11 rejects. For example, `f"{row["ticker"]}"` (same quote type inside an f-string) works on 3.12 but is a `SyntaxError` on 3.11. Use `f"{row['ticker']}"` instead.
 
@@ -62,12 +62,21 @@ py -3.11 -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
+Windows (Git Bash, which is often the default terminal in VS Code):
+
+```bash
+py -3.11 -m venv .venv
+source .venv/Scripts/activate
+```
+
 Mac / Linux:
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
 ```
+
+Not sure which terminal you're in? A prompt ending in `$` with `MINGW64` in it is Git Bash. A prompt starting with `PS` is PowerShell. If you see `bash: .venvScriptsActivate.ps1: command not found`, you ran the PowerShell command in Git Bash; use the Git Bash one.
 
 Your prompt should now start with `(.venv)`, and `python --version` should print 3.11 (or 3.12). **Activate the venv every time you open a new terminal.**
 
@@ -83,9 +92,11 @@ pip install -r requirements.txt
 
 You've been invited to our Plaid team. Copy the example file to `.env` in the repo root (the same folder as this README):
 
+* If not invited, message a PM
+
 ```bash
-cp .env.example .env        # Mac / Linux
-copy .env.example .env      # Windows
+cp .env.example .env        # Mac / Linux / Git Bash
+copy .env.example .env      # Windows PowerShell or cmd
 ```
 
 Open `.env` and fill in both values from the [Plaid dashboard → Developers → Keys](https://dashboard.plaid.com/developers/keys):
@@ -116,28 +127,14 @@ Then open http://127.0.0.1:8000/admin/ and log in. Stop the server with Ctrl+C.
 
 ### Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| `KeyError: 'PLAID_CLIENT_ID'` | `.env` is missing, empty, or not in the repo root. Redo step 5. |
-| `ModuleNotFoundError: No module named 'django'` | Your venv isn't active. Activate it (step 3). |
-| `pip install` shows "Building wheel for numpy" or "for pandas" for minutes, or fails while building | Your venv uses Python 3.13 or newer. Delete `.venv` and redo step 3 with 3.11. |
-| Windows: "running scripts is disabled on this system" | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then activate again. |
-| `python manage.py` says "No such file" | You're not in `backend/`. Run `cd backend`. |
-
-## Suggested project structure
-
-\`\`\`
-portfolio-analysis/
-├── src/
-│   ├── intake.py       # parse holdings into a normalized list
-│   ├── classify.py     # LLM call → track assignment
-│   ├── metrics.py      # volatility + optimization metric
-│   ├── dominance.py    # flag dominated stocks per track
-│   └── risk.py         # portfolio-level risk analysis
-├── prompts/            # LLM prompt templates
-├── requirements.txt
-└── README.md
-\`\`\`
+| Problem                                                                                               | Fix                                                                                   |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `KeyError: 'PLAID_CLIENT_ID'`                                                                       | `.env` is missing, empty, or not in the repo root. Redo step 5.                     |
+| `ModuleNotFoundError: No module named 'django'`                                                     | Your venv isn't active. Activate it (step 3).                                         |
+| `pip install` shows "Building wheel for numpy" or "for pandas" for minutes, or fails while building | Your venv uses Python 3.13 or newer. Delete `.venv` and redo step 3 with 3.11.       |
+| Windows PowerShell: "running scripts is disabled on this system"                                      | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then activate again. |
+| `bash: .venvScriptsActivate.ps1: command not found`                                                   | You're in Git Bash. Use `source .venv/Scripts/activate` (step 3).                     |
+| `python manage.py` says "No such file"                                                              | You're not in `backend/`. Run `cd backend`.                                        |
 
 ## Roadmap
 
