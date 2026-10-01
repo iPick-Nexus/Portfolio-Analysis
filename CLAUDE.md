@@ -5,7 +5,14 @@ Part of the iPick ML build, which is split across three repos:
 - Portfolio-Optimization (this repo, Team 2): package portfolio_analysis (portfolio_analysis/portfolio and portfolio_analysis/llm).
 - Portfolio-Reinforcement-Learning (Team 3): package pick_agents.
 
-The private iPick Flask backend (iPickAI_flask) installs all three as pip packages pinned to git tags. Code here NEVER reads or writes iPick's S3, database, Flask app or user data.
+The private iPick Flask backend (iPickAI_flask) installs all three as pip packages pinned to git tags. Code in portfolio_analysis/ NEVER reads or writes iPick's S3, database, Flask app or user data.
+
+## Exception: backend/ (Plaid portfolio ingestion)
+backend/ is a Django app that links user brokerage accounts through Plaid and ingests their holdings into the positions shape (see "Data facts" below). It is the only place allowed to:
+- call the Plaid API (through backend/plaid_integration/client.py get_client()),
+- store user data (Plaid access tokens and items) in its own database.
+Credentials come from environment variables (.env locally, never committed). Tests mock get_client() and never call Plaid. portfolio_analysis/ must not import from backend/; it receives positions as plain inputs.
+Run it from backend/ with its own venv: `python3.11 -m venv venv && venv/bin/pip install -r ../requirements.txt`.
 
 ## Dependencies
 - stock-recommendations (Team 1) is pinned by tag in pyproject.toml. It provides stock_recs.data (load_prices, build_features) and the shared contracts and vendor packages. Import them as `from contracts.types import ...` and `from vendor.track_leader import ...`.
