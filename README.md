@@ -23,21 +23,106 @@ Given a user's holdings, this service categorizes each position, finds stocks th
 - **Pipeline & risk metrics:** Python, pandas, NumPy
 - **Data store:** PostgreSQL (shared with the Nexus integration)
 
-## Getting started
+## Setup
 
-\`\`\`bash
+Do this once, before your first work session. It takes about 10 minutes.
+
+### 1. Install Python 3.11
+
+**3.11 recommended, 3.12 okay, 3.13+ won't install.**
+
+| Python | Works? | Why |
+|---|---|---|
+| 3.11 | ✅ Recommended | Matches production exactly |
+| 3.12 | ✅ Okay | Installs fine, but CI runs on 3.11, so a few newer-only syntax features will fail there (see below) |
+| 3.13, 3.14 | ❌ | Our pinned numpy (1.26.4) has no ready-made install for them, so `pip install` tries to compile it from source, which is slow and usually fails |
+
+Why 3.11: production runs 3.11, and code written on a newer Python can use syntax 3.11 rejects. For example, `f"{row["ticker"]}"` (same quote type inside an f-string) works on 3.12 but is a `SyntaxError` on 3.11. Use `f"{row['ticker']}"` instead.
+
+- Windows: install it from [python.org](https://www.python.org/downloads/release/python-3119/). Check with `py -3.11 --version`.
+- Mac: `brew install python@3.11`. Check with `python3.11 --version`.
+
+You can keep other Python versions installed. The virtual environment in step 3 picks 3.11 for this project. (On 3.12, replace `3.11` with `3.12` in the commands below.)
+
+### 2. Get the code
+
+```bash
 git clone <repo-url>
-cd portfolio-analysis
+cd Portfolio-Analysis
+```
 
-python3 -m venv .venv
+### 3. Create and activate a virtual environment
+
+A virtual environment (venv) is a private folder of packages for this project, so it doesn't clash with your other projects. It lives in `.venv/`, which git ignores.
+
+Windows (PowerShell):
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+Mac / Linux:
+
+```bash
+python3.11 -m venv .venv
 source .venv/bin/activate
+```
+
+Your prompt should now start with `(.venv)`, and `python --version` should print 3.11 (or 3.12). **Activate the venv every time you open a new terminal.**
+
+In VS Code, run "Python: Select Interpreter" and pick the one in `.venv`.
+
+### 4. Install packages
+
+```bash
 pip install -r requirements.txt
+```
 
-# LLM API key (Claude example)
-export ANTHROPIC_API_KEY="your-api-key-here"
-\`\`\`
+### 5. Add the Plaid keys
 
-> Fill in `requirements.txt` with at least: `anthropic`, `pandas`, `numpy`, `psycopg[binary]`.
+You've been invited to our Plaid team. Copy the example file to `.env` in the repo root (the same folder as this README):
+
+```bash
+cp .env.example .env        # Mac / Linux
+copy .env.example .env      # Windows
+```
+
+Open `.env` and fill in both values from the [Plaid dashboard → Developers → Keys](https://dashboard.plaid.com/developers/keys):
+
+- `PLAID_CLIENT_ID`: the client ID
+- `PLAID_SECRET`: the **Sandbox** secret (not Production)
+
+**Never commit `.env`, and never paste keys into code, Slack or screenshots.** Git already ignores `.env`.
+
+### 6. Set up the database and check that everything works
+
+```bash
+cd backend
+python manage.py migrate
+python manage.py test plaid_integration
+```
+
+If the tests *run*, your setup works, even if some of them fail. Failing tests are expected while a task is unfinished. Run all `manage.py` commands from the `backend/` folder.
+
+### 7. (Optional) Run the website
+
+```bash
+python manage.py createsuperuser    # once, to make a login for yourself
+python manage.py runserver
+```
+
+Then open http://127.0.0.1:8000/admin/ and log in. Stop the server with Ctrl+C.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `KeyError: 'PLAID_CLIENT_ID'` | `.env` is missing, empty, or not in the repo root. Redo step 5. |
+| `ModuleNotFoundError: No module named 'django'` | Your venv isn't active. Activate it (step 3). |
+| `pip install` shows "Building wheel for numpy" or "for pandas" for minutes, or fails while building | Your venv uses Python 3.13 or newer. Delete `.venv` and redo step 3 with 3.11. |
+| Windows: "running scripts is disabled on this system" | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then activate again. |
+| `python manage.py` says "No such file" | You're not in `backend/`. Run `cd backend`. |
 
 ## Suggested project structure
 
